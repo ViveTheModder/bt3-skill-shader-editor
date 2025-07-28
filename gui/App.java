@@ -386,7 +386,7 @@ public class App
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				if (!openFolderDialog) setFolderDialog(false);
+				if (!openFolderDialog) setFolderDialog(true);
 			}
 		});
 		swap.addActionListener(new ActionListener()
