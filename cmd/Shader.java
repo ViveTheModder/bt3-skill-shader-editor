@@ -7,22 +7,28 @@ import java.io.RandomAccessFile;
 
 public class Shader 
 {
+	private File ref;
 	private RandomAccessFile bin;
 	private String fileName;
 	private final String[] TEXT = {"RED","GREEN","BLUE","ALPHA"};
 
 	public Shader(File f) throws IOException
 	{
+		ref = f;
 		bin = new RandomAccessFile(f,"rw");
 		fileName = f.getName();
 	}
-	public byte[] copyShaderColor(byte[] rgbData, int inColorIdx, int outColorIdx)
+	public File getRefFile()
+	{
+		return ref;
+	}
+	public int[] copyShaderColor(int[] rgbData, int inColorIdx, int outColorIdx)
 	{
 		for (int i=0; i<rgbData.length; i+=4)
 			rgbData[i+outColorIdx] = rgbData[i+inColorIdx];
 		return rgbData;
 	}
-	public byte[] getRgbDataFromV00() throws IOException
+	public int[] getRgbDataFromV00() throws IOException
 	{
 		byte[] input = new byte[4];
 		int fileSize = (int)bin.length();
@@ -30,7 +36,7 @@ public class Shader
 		int pos = LittleEndian.getShort(bin.readShort());
 		bin.seek(pos);
 		
-		byte[] data = new byte[4*((fileSize-pos)/64)]; //each color has 64 bytes of data, but only 4 are relevant (RGBA)
+		int[] data = new int[4*((fileSize-pos)/64)]; //each color has 64 bytes of data, but only 4 are relevant (RGBA)
 		int dataCnt=0;
 		while (pos<fileSize)
 		{
@@ -39,18 +45,18 @@ public class Shader
 			bin.read(input);
 			for (int i=0; i<4; i++) //convert byte to unsigned byte
 			{
-				data[dataCnt] = (byte)(input[i] & 0xFF);
+				data[dataCnt] = (input[i] & 0xFF);
 				dataCnt++;
 			}
 			pos+=16;
 		}
 		return data;
 	}
-	public byte[] swapShaderColor(byte[] rgbData, int inColorIdx, int outColorIdx)
+	public int[] swapShaderColor(int[] rgbData, int inColorIdx, int outColorIdx)
 	{
 		for (int i=0; i<rgbData.length; i+=4)
 		{
-			byte tmp = rgbData[i+inColorIdx];
+			int tmp = rgbData[i+inColorIdx];
 			rgbData[i+inColorIdx] = rgbData[i+outColorIdx];
 			rgbData[i+outColorIdx] = tmp;
 		}
@@ -120,7 +126,7 @@ public class Shader
 		}
 		System.out.println();
 	}
-	public void printRgbDataFromV00(byte[] rgbData) throws IOException
+	public void printRgbDataFromV00(int[] rgbData) throws IOException
 	{
 		for (int i=0; i<TEXT.length; i++) System.out.printf("%5s ", TEXT[i]);
 		System.out.println();
@@ -141,7 +147,7 @@ public class Shader
 		}
 		bin.close();
 	}
-	public void writeRgbDataToV00(byte[] rgbData) throws IOException
+	public void writeRgbDataToV00(int[] rgbData) throws IOException
 	{
 		int dataCnt=0;
 		int fileSize = (int)bin.length();

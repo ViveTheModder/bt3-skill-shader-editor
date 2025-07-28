@@ -4,10 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
 
+import gui.App;
+
 public class Main 
 {
 	private static final String[] OPTIONS = {"Read Shader Files","Copy Shader Color (RGB)","Swap Shader Colors (RGB)"};
-	private static final String[] COLORS = {"RED","GREEN","BLUE"};
+	public static final String[] COLORS = {"RED","GREEN","BLUE"};
 	public static boolean skipOdd;
 	public static int inColorIdx=-1, outColorIdx=-1;
 	public static void read(Shader[] shaders) throws IOException
@@ -89,61 +91,65 @@ public class Main
 	{
 		try
 		{
-			int option=-1;
-			Shader[] shaders=null;
-			Scanner sc = new Scanner(System.in);
-			while (shaders==null)
+			if (args.length>0 && args[0]=="-c")
 			{
-				System.out.println("Enter a valid path to a skill shader OR a folder containing skill shaders:");
-				String path = sc.nextLine();
-				File tmp = new File(path);
-				if (tmp.isFile())
+				int option=-1;
+				Shader[] shaders=null;
+				Scanner sc = new Scanner(System.in);
+				while (shaders==null)
 				{
-					String tmpName = tmp.getName().toLowerCase();
-					if (tmpName.endsWith("dat") || tmpName.endsWith("v00")) 
+					System.out.println("Enter a valid path to a skill shader OR a folder containing skill shaders:");
+					String path = sc.nextLine();
+					File tmp = new File(path);
+					if (tmp.isFile())
 					{
-						shaders = new Shader[1];
-						shaders[0] = new Shader(tmp);
+						String tmpName = tmp.getName().toLowerCase();
+						if (tmpName.endsWith("dat") || tmpName.endsWith("v00")) 
+						{
+							shaders = new Shader[1];
+							shaders[0] = new Shader(tmp);
+						}
+						else System.out.println("Not a skill shader! File extension must be DAT or V00.");
 					}
-					else System.out.println("Not a skill shader! File extension must be DAT or V00.");
+					else if (tmp.isDirectory())
+					{
+						File[] tmpFiles = tmp.listFiles((dir, name) -> 
+						name.toLowerCase().endsWith(".dat") || name.toLowerCase().contains(".v00"));
+						if (tmpFiles.length>0)
+						{
+							shaders = new Shader[tmpFiles.length];
+							for (int i=0; i<tmpFiles.length; i++) shaders[i] = new Shader(tmpFiles[i]);
+						}
+						else System.out.println("Directory does NOT contain skill shaders!");
+					}
 				}
-				else if (tmp.isDirectory())
+				while (option==-1)
 				{
-					File[] tmpFiles = tmp.listFiles((dir, name) -> 
-					name.toLowerCase().endsWith(".dat") || name.toLowerCase().contains(".v00"));
-					if (tmpFiles.length>0)
-					{
-						shaders = new Shader[tmpFiles.length];
-						for (int i=0; i<tmpFiles.length; i++) shaders[i] = new Shader(tmpFiles[i]);
-					}
-					else System.out.println("Directory does NOT contain skill shaders!");
+					System.out.println("Enter an option number out of the following:");
+					for (int i=0; i<OPTIONS.length; i++) System.out.println(i+". "+OPTIONS[i]);
+					String input = sc.nextLine();
+					if (input.matches("[0-"+(OPTIONS.length-1)+"]")) option = Integer.parseInt(input);
 				}
+				long start = System.currentTimeMillis();
+				switch (option)
+				{
+					case 0: 
+						if (shaders.length>1) readParams(sc,false);
+						read(shaders);
+						break;
+					case 1: 
+						if (shaders.length>1) readParams(sc,true);
+						write(shaders,inColorIdx,outColorIdx,true); 
+						break;
+					case 2: 
+						if (shaders.length>1) readParams(sc,true); 
+						write(shaders,inColorIdx,outColorIdx,false); 
+						break;
+				}
+				long finish = System.currentTimeMillis();
+				System.out.println("Time: "+(finish-start)/1000.0+" s");
 			}
-			while (option==-1)
-			{
-				System.out.println("Enter an option number out of the following:");
-				for (int i=0; i<OPTIONS.length; i++) System.out.println(i+". "+OPTIONS[i]);
-				String input = sc.nextLine();
-				if (input.matches("[0-"+(OPTIONS.length-1)+"]")) option = Integer.parseInt(input);
-			}
-			long start = System.currentTimeMillis();
-			switch (option)
-			{
-				case 0: 
-					if (shaders.length>1) readParams(sc,false);
-					read(shaders);
-					break;
-				case 1: 
-					if (shaders.length>1) readParams(sc,true);
-					write(shaders,inColorIdx,outColorIdx,true); 
-					break;
-				case 2: 
-					if (shaders.length>1) readParams(sc,true); 
-					write(shaders,inColorIdx,outColorIdx,false); 
-					break;
-			}
-			long finish = System.currentTimeMillis();
-			System.out.println("Time: "+(finish-start)/1000.0+" s");
+			else App.main(args);
 		}
 		catch (IOException e)
 		{
