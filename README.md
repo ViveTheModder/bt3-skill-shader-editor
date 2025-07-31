@@ -55,3 +55,8 @@ Each color can be clicked and changed accordingly.
 <img width="910" height="540" alt="image" src="https://github.com/user-attachments/assets/a1d2d2a7-63fd-4ec3-849d-d138b817c65e" />
 
 <img width="924" height="720" alt="image" src="https://github.com/user-attachments/assets/bd93c365-28ce-4776-8dda-31a22eb1f73d" />
+
+## Inverting Shader Colors
+<img width="1024" height="512" alt="image" src="https://github.com/user-attachments/assets/9cb3921b-e2be-4e3e-b45e-b2f00cd4ef17" />
+
+<img width="1024" height="512" alt="image" src="https://github.com/user-attachments/assets/bce01766-8093-48e2-aef5-d363e323ba0d" />
