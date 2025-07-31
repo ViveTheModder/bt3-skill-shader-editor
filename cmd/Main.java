@@ -1,5 +1,5 @@
 package cmd;
-//BT3 Skill Shader Editor, written by ViveTheModder (Tribute to Maycon)
+//BT3 Skill Shader Editor v1.2, written by ViveTheModder (Tribute to Maycon)
 import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
@@ -19,7 +19,7 @@ public class Main
 			String shaderName = sh.getFileName();
 			int shaderType = sh.getFileType();
 			int shaderNum = Integer.parseInt(shaderName.split("_")[0]);
-			if (shaderNum==3) continue; //03_.dat is NOT a skill shader file, but it does control them
+			if (shaderNum==3 || shaderNum==5) continue; //03_.dat is NOT a skill shader file, but it does control them
 			if (skipOdd == (shaderNum%2==0))
 			{
 				System.out.println("* "+sh.getFileName());
@@ -70,7 +70,9 @@ public class Main
 			if (shaderNum==3) continue; //03_.dat is NOT a skill shader file, but it does control them
 			if (shaderType==0) 
 			{
-				if (skipOdd == (shaderNum%2==0))
+				boolean autoSkipResult = skipOdd == (shaderNum%2==0);
+				if (shaders.length==1) autoSkipResult = true;
+				if (autoSkipResult)
 				{
 					if (!copy) textIdx=1; 
 					System.out.println(text[textIdx]+" "+COLORS[outColorIdx]+" values with "+COLORS[inColorIdx]+" for "+sh.getFileName()+"...");

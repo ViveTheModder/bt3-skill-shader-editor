@@ -1,5 +1,6 @@
 package gui;
-//BT3 Skill Shader Editor v1.1, written by ViveTheModder (Tribute to Maycon)
+//BT3 Skill Shader Editor v1.2, written by ViveTheModder (Tribute to Maycon)
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.Dimension;
@@ -7,6 +8,7 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.ScrollPane;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -45,7 +47,7 @@ import cmd.Shader;
 
 public class App 
 {
-	private static boolean openColorChooser=false, openFolderDialog=false;
+	private static boolean openColorChooser=false, openActionDialog=false;
 	private static int shaderType=-1;
 	private static File lastFile, lastFolder;
 	private static Shader shader=null;
@@ -58,7 +60,7 @@ public class App
 	private static final Font MED = new Font("Tahoma", 0, 14);
 	private static final String HTML_A_START = "<html><a href=''>";
 	private static final String HTML_A_END = "</a></html>";
-	private static final String WINDOW_TITLE = "BT3 Skill Shader Editor v1.1";
+	private static final String WINDOW_TITLE = "BT3 Skill Shader Editor v1.2";
 	private static final Toolkit DEF_TOOLKIT = Toolkit.getDefaultToolkit();
 	
 	private static boolean autoSkipOdd(Shader[] shaders) throws IOException
@@ -73,14 +75,12 @@ public class App
 			if (shaderType==0)
 			{
 				float[] rgbData = sh.getRgbDataFromDat();
-				for (int i=0; i<rgbData.length; i++)
-					if (rgbData[i]<0) break;
+				for (int i=0; i<rgbData.length; i++) if (rgbData[i]<0) break;
 			}
 			else
 			{
 				int[] rgbData = sh.getRgbDataFromV00();
-				for (int i=0; i<rgbData.length; i++)
-					if (rgbData[i]<0) break;
+				for (int i=0; i<rgbData.length; i++) if (rgbData[i]<0) break;
 			}
 		}
 		if (shaderNum%2!=0) return true;
@@ -180,6 +180,55 @@ public class App
 		}
 		return textFields;
 	}
+	private static JPanel getSingleShaderPanel()
+	{
+		String[] btnText = {"Copy Color","Swap Colors","Invert Colors"};
+		//initialize components
+		Box btnBox = Box.createHorizontalBox();
+		JButton[] btns = new JButton[3];
+		JPanel panel = new JPanel();
+		//add components
+		for (int i=0; i<3; i++)
+		{
+			btns[i] = new JButton(btnText[i]);
+			btnBox.add(btns[i]);
+			btnBox.add(Box.createHorizontalStrut(20));
+		}
+		//add action listeners
+		btns[0].addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				setActionDialog(true,true);
+			}
+		});
+		btns[1].addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				setActionDialog(false,true);
+			}
+		});
+		btns[2].addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				for (JButton cb: colorBtns)
+				{
+					Color rgb = cb.getBackground();
+					cb.setBackground(new Color(255-rgb.getRed(),255-rgb.getGreen(),255-rgb.getBlue()));
+					Color newRgb = cb.getBackground();
+					if (newRgb.equals(Color.WHITE)) cb.setForeground(Color.BLACK);
+					else if (newRgb.equals(Color.BLACK)) cb.setForeground(Color.WHITE);
+				}
+			}
+		});
+		panel.add(btnBox);
+		return panel;
+	}
 	private static JTextField[] getOpacityFieldsFromRgbData(int[] rgbData)
 	{
 		JTextField[] textFields = new JTextField[rgbData.length/4];
@@ -276,6 +325,102 @@ public class App
 		Runnable runWinErrorSnd = (Runnable) DEF_TOOLKIT.getDesktopProperty("win.sound.exclamation");
 		if (runWinErrorSnd!=null) runWinErrorSnd.run();
 	}
+	private static void setActionDialog(boolean copy, boolean single)
+	{
+		openActionDialog=true;
+		String action="swap";
+		if (copy) action="copy";
+		Main.inColorIdx=0; Main.outColorIdx=0;
+		//initialize components
+		Box inBox = Box.createHorizontalBox();
+		Box outBox = Box.createHorizontalBox();
+		ButtonGroup[] btnGroups = {new ButtonGroup(), new ButtonGroup()};
+		GridBagConstraints gbc = new GridBagConstraints();
+		JButton applyBtn = new JButton("Apply "+action.toUpperCase()+" Procedure");
+		JDialog dialog = new JDialog();
+		JLabel inLbl = new JLabel("Input Color:");
+		JLabel outLbl = new JLabel("Output Color:");
+		JPanel panel = new JPanel(new GridBagLayout());
+		JRadioButton[] radioBtns = new JRadioButton[6];
+		//set component properties
+		gbc.gridwidth = GridBagConstraints.REMAINDER;
+		inLbl.setFont(BOLD);
+		outLbl.setFont(BOLD);
+		for (int i=0; i<radioBtns.length; i++)
+		{
+			final int index=i;
+			radioBtns[i] = new JRadioButton(Main.COLORS[i%3]);
+			radioBtns[i].setFont(MED);
+			radioBtns[i].addActionListener(new ActionListener()
+			{
+				@Override
+				public void actionPerformed(ActionEvent e) 
+				{
+					if (index%2==0) Main.outColorIdx = index%3;
+					else Main.inColorIdx = index%3;
+				}
+			});
+			btnGroups[i/3].add(radioBtns[i]);
+			if (i%3==0) radioBtns[i].setSelected(true);
+		}
+		//add listeners
+		applyBtn.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				try 
+				{
+					Shader[] shaders=null;
+					if (!single) shaders = getShadersFromChooser();
+					else 
+					{
+						shaders = new Shader[1];
+						shaders[0] = new Shader(shader.getRefFile());
+					}
+					if (shaders!=null) 
+					{
+						Main.skipOdd = autoSkipOdd(shaders);
+						String numType="even";
+						if (!Main.skipOdd) numType="odd";
+						Main.write(shaders,Main.inColorIdx,Main.outColorIdx,copy);
+						DEF_TOOLKIT.beep();
+						String msg = "Changes to "+numType+"ly numbered skill shaders have been saved!";
+						if (single) msg = "Changes to skill shader have been saved!";
+						JOptionPane.showMessageDialog(null, msg, WINDOW_TITLE, 1);
+					}
+				} 
+				catch (IOException e1) 
+				{
+					e1.printStackTrace();
+				}
+			}
+		});
+		dialog.addWindowListener(new WindowAdapter()
+		{
+			 @Override
+		     public void windowClosing(WindowEvent e) 
+		     {
+				 openActionDialog=false;
+			 }
+		});
+		//add components
+		panel.add(inLbl,gbc);
+		for (int i=0; i<3; i++) inBox.add(radioBtns[i]);
+		panel.add(inBox,gbc);
+		panel.add(outLbl,gbc);
+		for (int i=3; i<6; i++) outBox.add(radioBtns[i]);
+		panel.add(outBox,gbc);
+		panel.add(applyBtn,gbc);
+		dialog.add(panel);
+		//set dialog properties
+		dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+		dialog.setLocationRelativeTo(null);
+		dialog.setResizable(false);
+		dialog.setSize(256,256);
+		dialog.setTitle("Pick Colors to "+action+"...");
+		dialog.setVisible(true);
+	}
 	private static void setApp()
 	{
 		//initialize components
@@ -291,6 +436,7 @@ public class App
 		JMenuItem swap = new JMenuItem("Swap Shader Colors...");
 		JMenuItem about = new JMenuItem("About");
 		JPanel panel = new JPanel(new GridLayout(0,4));
+		ScrollPane scroll = new ScrollPane();
 		//set component properties
 		frame.setLayout(new GridBagLayout());
 		gbc.gridwidth = GridBagConstraints.REMAINDER;
@@ -302,23 +448,43 @@ public class App
 			{
 				try 
 				{
+					JPanel shaderPanel = getSingleShaderPanel();
 					panel.removeAll();
-					shader = getShaderFromChooser();
-					frame.setTitle(WINDOW_TITLE+" - "+shader.getFileName());
-					if (shaderType==0)
+					frame.remove(panel);
+					Shader tmpShader = getShaderFromChooser();
+					if (tmpShader!=null)
 					{
-						float[] rgbData = shader.getRgbDataFromDat();
-						colorBtns = getColorBtnsFromRgbData(rgbData);
-						opacityFields = getOpacityFieldsFromRgbData(rgbData);
-					}
-					else
-					{
-						int[] rgbData = shader.getRgbDataFromV00();
-						colorBtns = getColorBtnsFromRgbData(rgbData);
-						opacityFields = getOpacityFieldsFromRgbData(rgbData);
+						shader=tmpShader;
+						scroll.add(panel);
+						frame.setTitle(WINDOW_TITLE+" - "+shader.getFileName());
+						frame.setLayout(new BorderLayout());
+						frame.add(scroll,BorderLayout.CENTER);
+						frame.add(shaderPanel,BorderLayout.SOUTH);
+						if (shaderType==0)
+						{
+							float[] rgbData = shader.getRgbDataFromDat();
+							colorBtns = getColorBtnsFromRgbData(rgbData);
+							opacityFields = getOpacityFieldsFromRgbData(rgbData);
+						}
+						else
+						{
+							int[] rgbData = shader.getRgbDataFromV00();
+							colorBtns = getColorBtnsFromRgbData(rgbData);
+							opacityFields = getOpacityFieldsFromRgbData(rgbData);
+						}
 					}
 					if (colorBtns!=null)
 					{
+						for (int j=0; j<4; j++) 
+						{
+							JLabel alpha = new JLabel("Color & Opacity");
+							alpha.setFont(BOLD);
+							Box box = Box.createHorizontalBox();
+							box.add(Box.createHorizontalStrut(16));
+							box.add(alpha);
+							box.add(Box.createHorizontalStrut(16));
+							panel.add(box);
+						}
 						for (int i=0; i<colorBtns.length; i++) 
 						{
 							final int index=i;
@@ -333,6 +499,7 @@ public class App
 							});
 							//add buttons and fields to panel
 							Box box = Box.createHorizontalBox();
+							box.add(Box.createHorizontalStrut(16));
 							box.add(colorBtns[i]);
 							box.add(opacityFields[i]);
 							box.add(Box.createHorizontalStrut(16));
@@ -386,7 +553,7 @@ public class App
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				if (!openFolderDialog) setFolderDialog(true);
+				if (!openActionDialog) setActionDialog(true,false);
 			}
 		});
 		swap.addActionListener(new ActionListener()
@@ -394,7 +561,7 @@ public class App
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				if (!openFolderDialog) setFolderDialog(false);
+				if (!openActionDialog) setActionDialog(false,false);
 			}
 		});
 		about.addActionListener(new ActionListener()
@@ -408,7 +575,6 @@ public class App
 				String[] text = {"Made by: ","Greatly inspired by: ","Initial research by: "};
 				JLabel[] authors = 
 				{new JLabel(HTML_A_START+"ViveTheModder"+HTML_A_END), new JLabel(HTML_A_START+"Maycon"+HTML_A_END), new JLabel(HTML_A_START+"Vras"+HTML_A_END)};
-			
 				for (int i=0; i<authors.length; i++)
 				{
 					final int index=i;
@@ -452,7 +618,7 @@ public class App
 		frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		frame.setLocationRelativeTo(null);
 		frame.setJMenuBar(menuBar);
-		frame.setSize(768,512);
+		frame.setSize(1024,512);
 		frame.setTitle(WINDOW_TITLE);
 		frame.setVisible(true);
 	}
@@ -492,94 +658,6 @@ public class App
 		dialog.setLocationRelativeTo(null);
 		dialog.setSize(768,512);
 		dialog.setTitle("Pick a Color...");
-		dialog.setVisible(true);
-	}
-	private static void setFolderDialog(boolean copy)
-	{
-		openFolderDialog=true;
-		String action="swap";
-		if (copy) action="copy";
-		Main.inColorIdx=0; Main.outColorIdx=0;
-		//initialize components
-		Box inBox = Box.createHorizontalBox();
-		Box outBox = Box.createHorizontalBox();
-		ButtonGroup[] btnGroups = {new ButtonGroup(), new ButtonGroup()};
-		GridBagConstraints gbc = new GridBagConstraints();
-		JButton applyBtn = new JButton("Apply "+action.toUpperCase()+" Procedure");
-		JDialog dialog = new JDialog();
-		JLabel inLbl = new JLabel("Input Color:");
-		JLabel outLbl = new JLabel("Output Color:");
-		JPanel panel = new JPanel(new GridBagLayout());
-		JRadioButton[] radioBtns = new JRadioButton[6];
-		//set component properties
-		gbc.gridwidth = GridBagConstraints.REMAINDER;
-		inLbl.setFont(BOLD);
-		outLbl.setFont(BOLD);
-		for (int i=0; i<radioBtns.length; i++)
-		{
-			final int index=i;
-			radioBtns[i] = new JRadioButton(Main.COLORS[i%3]);
-			radioBtns[i].setFont(MED);
-			radioBtns[i].addActionListener(new ActionListener()
-			{
-				@Override
-				public void actionPerformed(ActionEvent e) 
-				{
-					if (index%2==0) Main.outColorIdx = index%3;
-					else Main.inColorIdx = index%3;
-				}
-			});
-			btnGroups[i/3].add(radioBtns[i]);
-			if (i%3==0) radioBtns[i].setSelected(true);
-		}
-		//add listeners
-		applyBtn.addActionListener(new ActionListener()
-		{
-			@Override
-			public void actionPerformed(ActionEvent e) 
-			{
-				try 
-				{
-					Shader[] shaders = getShadersFromChooser();
-					if (shaders!=null) 
-					{
-						Main.skipOdd = autoSkipOdd(shaders);
-						String numType="even";
-						if (!Main.skipOdd) numType="odd";
-						Main.write(shaders,Main.inColorIdx,Main.outColorIdx,copy);
-						DEF_TOOLKIT.beep();
-						JOptionPane.showMessageDialog(null, "Changes to "+numType+"ly numbered skill shaders have been saved!", WINDOW_TITLE, 1);
-					}
-				} 
-				catch (IOException e1) 
-				{
-					e1.printStackTrace();
-				}
-			}
-		});
-		dialog.addWindowListener(new WindowAdapter()
-		{
-			 @Override
-		     public void windowClosing(WindowEvent e) 
-		     {
-				 openFolderDialog=false;
-			 }
-		});
-		//add components
-		panel.add(inLbl,gbc);
-		for (int i=0; i<3; i++) inBox.add(radioBtns[i]);
-		panel.add(inBox,gbc);
-		panel.add(outLbl,gbc);
-		for (int i=3; i<6; i++) outBox.add(radioBtns[i]);
-		panel.add(outBox,gbc);
-		panel.add(applyBtn,gbc);
-		dialog.add(panel);
-		//set dialog properties
-		dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-		dialog.setLocationRelativeTo(null);
-		dialog.setResizable(false);
-		dialog.setSize(256,256);
-		dialog.setTitle("Pick Colors to "+action+"...");
 		dialog.setVisible(true);
 	}
 	public static void main(String[] args) 
