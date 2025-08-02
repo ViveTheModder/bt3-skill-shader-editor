@@ -1,5 +1,5 @@
 package cmd;
-//BT3 Skill Shader Editor v1.2, written by ViveTheModder (Tribute to Maycon)
+//BT3 Skill Shader Editor v1.3, written by ViveTheModder (Tribute to Maycon)
 import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;

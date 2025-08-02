@@ -1,5 +1,5 @@
 package gui;
-//BT3 Skill Shader Editor v1.2, written by ViveTheModder (Tribute to Maycon)
+//BT3 Skill Shader Editor v1.3, written by ViveTheModder (Tribute to Maycon)
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Desktop;
@@ -8,6 +8,7 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.ScrollPane;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -24,6 +25,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import javax.swing.Box;
 import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JDialog;
@@ -52,6 +54,7 @@ public class App
 	private static File lastFile, lastFolder;
 	private static Shader shader=null;
 	private static JButton[] colorBtns;
+	private static JPanel panel;
 	private static JTextField[] opacityFields;
 	private static final Dimension BUTTON_SIZE = new Dimension(96,32);
 	private static final Dimension FIELD_SIZE = new Dimension(96,32);
@@ -60,8 +63,9 @@ public class App
 	private static final Font MED = new Font("Tahoma", 0, 14);
 	private static final String HTML_A_START = "<html><a href=''>";
 	private static final String HTML_A_END = "</a></html>";
-	private static final String WINDOW_TITLE = "BT3 Skill Shader Editor v1.2";
+	private static final String WINDOW_TITLE = "BT3 Skill Shader Editor v1.3";
 	private static final Toolkit DEF_TOOLKIT = Toolkit.getDefaultToolkit();
+	private static final Image ICON = DEF_TOOLKIT.getImage(ClassLoader.getSystemResource("img/icon.png"));
 	
 	private static boolean autoSkipOdd(Shader[] shaders) throws IOException
 	{
@@ -71,7 +75,7 @@ public class App
 			int shaderType = sh.getFileType();
 			String shaderName = sh.getFileName();
 			shaderNum = Integer.parseInt(shaderName.split("_")[0]);
-			if (shaderNum==3) continue; //skip 03_.dat since it is NOT a shader
+			if (shaderNum==3 || shaderNum==5) continue; //skip 03_.dat (or 05_.dat if present) since it is NOT a shader
 			if (shaderType==0)
 			{
 				float[] rgbData = sh.getRgbDataFromDat();
@@ -278,8 +282,8 @@ public class App
 				lastFile = src;
 				Shader tmp = new Shader(src);
 				shaderType = tmp.getFileType();
-				if (shaderType!=-1) sh=tmp;
-				else
+				sh=tmp;
+				if (shaderType==-1)
 				{
 					errorBeep();
 					JOptionPane.showMessageDialog(null, "Invalid skill shader!", WINDOW_TITLE, 0);
@@ -424,22 +428,31 @@ public class App
 	private static void setApp()
 	{
 		//initialize components
+		Box title = Box.createHorizontalBox();
 		GridBagConstraints gbc = new GridBagConstraints();
+		Image img = ICON.getScaledInstance(128, 128, Image.SCALE_SMOOTH);
+		ImageIcon imgIcon = new ImageIcon(img);
 		JFrame frame = new JFrame();
 		JMenuBar menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");
 		JMenu folderMenu = new JMenu("Folder");
 		JMenu helpMenu = new JMenu("Help");
+		JLabel iconLabel = new JLabel(" ");
+		JLabel titleLabel = new JLabel("Skill Shader Editor");
 		JMenuItem open = new JMenuItem("Open Skill Shader...");
 		JMenuItem save = new JMenuItem("Save Skill Shader...");
 		JMenuItem copy = new JMenuItem("Copy Shader Color...");
 		JMenuItem swap = new JMenuItem("Swap Shader Colors...");
 		JMenuItem about = new JMenuItem("About");
-		JPanel panel = new JPanel(new GridLayout(0,4));
+		JPanel titlePanel = new JPanel(new GridBagLayout());
+		panel = new JPanel(new GridBagLayout());
 		ScrollPane scroll = new ScrollPane();
 		//set component properties
 		frame.setLayout(new GridBagLayout());
 		gbc.gridwidth = GridBagConstraints.REMAINDER;
+		iconLabel.setIcon(imgIcon);
+		titleLabel.setForeground(new Color(0x6666ff));
+		titleLabel.setFont(BOLD);
 		//add action listeners
 		open.addActionListener(new ActionListener()
 		{
@@ -452,12 +465,17 @@ public class App
 					panel.removeAll();
 					frame.remove(panel);
 					Shader tmpShader = getShaderFromChooser();
-					if (tmpShader!=null)
+					if (tmpShader!=null && tmpShader.getFileType()!=-1)
 					{
+						panel = new JPanel(new GridLayout(0,4));
 						shader=tmpShader;
+						title.add(iconLabel);
+						title.add(titleLabel);
+						titlePanel.add(title,gbc);
 						scroll.add(panel);
 						frame.setTitle(WINDOW_TITLE+" - "+shader.getFileName());
 						frame.setLayout(new BorderLayout());
+						frame.add(titlePanel,BorderLayout.NORTH);
 						frame.add(scroll,BorderLayout.CENTER);
 						frame.add(shaderPanel,BorderLayout.SOUTH);
 						if (shaderType==0)
@@ -505,11 +523,6 @@ public class App
 							box.add(Box.createHorizontalStrut(16));
 							panel.add(box);
 						}
-					}
-					else
-					{
-						errorBeep();
-						JOptionPane.showMessageDialog(null, "Invalid skill shader!", WINDOW_TITLE, 0);
 					}
 					frame.revalidate();
 				} 
@@ -601,7 +614,7 @@ public class App
 					});
 					mainBox.add(boxes[i]);
 				}
-				JOptionPane.showMessageDialog(null, mainBox, WINDOW_TITLE, 1);
+				JOptionPane.showMessageDialog(null, mainBox, WINDOW_TITLE, 1, imgIcon);
 			}
 		});
 		//add components
@@ -613,9 +626,13 @@ public class App
 		menuBar.add(fileMenu);
 		menuBar.add(folderMenu);
 		menuBar.add(helpMenu);
+		title.add(iconLabel);
+		title.add(titleLabel);
+		panel.add(title,gbc);
 		frame.add(panel);		
 		//set frame properties
 		frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+		frame.setIconImage(ICON);
 		frame.setLocationRelativeTo(null);
 		frame.setJMenuBar(menuBar);
 		frame.setSize(1024,512);

@@ -45,7 +45,7 @@ public class Shader
 			bin.read(input);
 			for (int i=0; i<4; i++) //convert byte to unsigned byte
 			{
-				data[dataCnt] = (input[i] & 0xFF);
+				if (dataCnt<data.length) data[dataCnt] = (input[i] & 0xFF);
 				dataCnt++;
 			}
 			pos+=16;
@@ -94,7 +94,7 @@ public class Shader
 	public int getFileType() throws IOException
 	{
 		byte[] input = new byte[4];
-		int fileType=-1, floatCnt=0;
+		int fileType=-1, intCnt=0;
 		int fileSize = (int)bin.length();
 		bin.seek(0);
 		
@@ -106,9 +106,10 @@ public class Shader
 				String header = new String(input);
 				if (header.equals("V000")) return 1;
 			}
-			if (LittleEndian.isFloat(input)) floatCnt++;
+			if (!LittleEndian.isFloat(input)) intCnt++;
 		}
-		if (floatCnt>0) fileType=0;
+		if (intCnt>0) fileType=-1;
+		else fileType=0;
 		return fileType;
 	}
 	public String getFileName()
@@ -161,7 +162,8 @@ public class Shader
 			bin.seek(pos);
 			for (int i=0; i<4; i++)
 			{
-				bin.writeByte(rgbData[dataCnt]);
+				if (dataCnt<rgbData.length) 
+					bin.writeByte(rgbData[dataCnt]);
 				dataCnt++;
 			}
 			pos+=16;
