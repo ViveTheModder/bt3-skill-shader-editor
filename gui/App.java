@@ -1,5 +1,5 @@
 package gui;
-//BT3 Skill Shader Editor v1.3, written by ViveTheModder (Tribute to Maycon)
+//BT3 Skill Shader Editor v1.3.1, written by ViveTheModder (Tribute to Maycon)
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Desktop;
@@ -63,7 +63,7 @@ public class App
 	private static final Font MED = new Font("Tahoma", 0, 14);
 	private static final String HTML_A_START = "<html><a href=''>";
 	private static final String HTML_A_END = "</a></html>";
-	private static final String WINDOW_TITLE = "BT3 Skill Shader Editor v1.3";
+	private static final String WINDOW_TITLE = "BT3 Skill Shader Editor v1.3.1";
 	private static final Toolkit DEF_TOOLKIT = Toolkit.getDefaultToolkit();
 	private static final Image ICON = DEF_TOOLKIT.getImage(ClassLoader.getSystemResource("img/icon.png"));
 	
@@ -130,9 +130,11 @@ public class App
 			}
 			Color clr = new Color(rgb[0],rgb[1],rgb[2]);
 			colorBtns[i].setBackground(clr);
+			//set button properties to display color properly
+			colorBtns[i].setContentAreaFilled(false);
+			colorBtns[i].setOpaque(true);
 			if (colorBtns[i].getBackground().equals(Color.WHITE)) colorBtns[i].setForeground(Color.BLACK); 
 			else colorBtns[i].setForeground(Color.WHITE);
-			colorBtns[i].setBorderPainted(false);
 			colorBtns[i].setMaximumSize(BUTTON_SIZE);
 			colorBtns[i].setMinimumSize(BUTTON_SIZE);
 			colorBtns[i].setPreferredSize(BUTTON_SIZE);
