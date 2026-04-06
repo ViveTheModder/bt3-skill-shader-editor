@@ -1,5 +1,5 @@
 package gui;
-//BT3 Skill Shader Editor v1.3.3.7, written by ViveTheJoestar (Tribute to Maycon)
+//BT3 Skill Shader Editor v1.3.6.7, written by ViveTheJoestar (Tribute to Maycon)
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Desktop;
@@ -11,6 +11,7 @@ import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.ScrollPane;
 import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
@@ -23,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import javax.swing.Box;
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
@@ -39,6 +41,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
+import javax.swing.TransferHandler;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
@@ -51,6 +54,7 @@ public class App {
 	private static boolean openColorChooser = false, openActionDialog = false;
 	private static int shaderType = -1;
 	private static File lastFile, lastFolder;
+	private static FileNameExtensionFilter currFilter;
 	private static Shader shader = null;
 	private static JButton[] colorBtns;
 	private static JPanel panel;
@@ -62,7 +66,7 @@ public class App {
 	private static final Font MED = new Font("Tahoma", 0, 14);
 	private static final String HTML_A_START = "<html><a href=''>";
 	private static final String HTML_A_END = "</a></html>";
-	private static final String WINDOW_TITLE = "BT3 Skill Shader Editor v1.3.3.7";
+	private static final String WINDOW_TITLE = "BT3 Skill Shader Editor v1.3.6.7";
 	private static final Toolkit DEF_TOOLKIT = Toolkit.getDefaultToolkit();
 	private static final Image ICON = DEF_TOOLKIT.getImage(ClassLoader.getSystemResource("img/icon.png"));
 
@@ -143,10 +147,12 @@ public class App {
 			int[] rgb = { (int) rgbData[4 * i], (int) rgbData[4 * i + 1], (int) rgbData[4 * i + 2] };
 			Color clr = new Color(rgb[0], rgb[1], rgb[2]);
 			colorBtns[i].setBackground(clr);
+			// set button properties to display color properly
+			colorBtns[i].setContentAreaFilled(false);
+			colorBtns[i].setOpaque(true);
 			if (colorBtns[i].getBackground().equals(Color.WHITE))
 				colorBtns[i].setForeground(Color.BLACK);
 			else colorBtns[i].setForeground(Color.WHITE);
-			colorBtns[i].setBorderPainted(false);
 			colorBtns[i].setMaximumSize(BUTTON_SIZE);
 			colorBtns[i].setMinimumSize(BUTTON_SIZE);
 			colorBtns[i].setPreferredSize(BUTTON_SIZE);
@@ -245,7 +251,11 @@ public class App {
 		chooser.setAcceptAllFileFilterUsed(false);
 		chooser.setDialogTitle("Open Skill Shader...");
 		chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-		chooser.setFileFilter(datFilter);
+		if (currFilter == null) chooser.setFileFilter(datFilter);
+		else {
+			if (shaderType == 0) chooser.setFileFilter(datFilter);
+			else if (shaderType == 1) chooser.setFileFilter(v00Filter);
+		}
 		if (lastFile != null) chooser.setCurrentDirectory(lastFile);
 		while (sh == null) {
 			int result = chooser.showOpenDialog(null);
@@ -259,6 +269,8 @@ public class App {
 					errorBeep();
 					JOptionPane.showMessageDialog(null, "Invalid skill shader!", WINDOW_TITLE, 0);
 				}
+				else if (shaderType == 1) currFilter = v00Filter;
+				else if (shaderType == 0) currFilter = datFilter;
 			}
 			else break;
 		}
@@ -412,62 +424,8 @@ public class App {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				try {
-					JPanel shaderPanel = getSingleShaderPanel();
-					panel.removeAll();
-					frame.remove(panel);
-					Shader tmpShader = getShaderFromChooser();
-					if (tmpShader != null && tmpShader.getFileType() != -1) {
-						panel = new JPanel(new GridLayout(0, 4));
-						shader = tmpShader;
-						title.add(iconLabel);
-						title.add(titleLabel);
-						titlePanel.add(title, gbc);
-						scroll.add(panel);
-						frame.setTitle(WINDOW_TITLE + " - " + shader.getFileName());
-						frame.setLayout(new BorderLayout());
-						frame.add(titlePanel, BorderLayout.NORTH);
-						frame.add(scroll, BorderLayout.CENTER);
-						frame.add(shaderPanel, BorderLayout.SOUTH);
-						if (shaderType == 0) {
-							float[] rgbData = shader.getRgbDataFromDat();
-							colorBtns = getColorBtnsFromRgbData(rgbData);
-							opacityFields = getOpacityFieldsFromRgbData(rgbData);
-						} else {
-							int[] rgbData = shader.getRgbDataFromV00();
-							colorBtns = getColorBtnsFromRgbData(rgbData);
-							opacityFields = getOpacityFieldsFromRgbData(rgbData);
-						}
-					}
-					if (colorBtns != null) {
-						for (int j = 0; j < 4; j++) {
-							JLabel alpha = new JLabel("Color & Opacity");
-							alpha.setFont(BOLD);
-							Box box = Box.createHorizontalBox();
-							box.add(Box.createHorizontalStrut(16));
-							box.add(alpha);
-							box.add(Box.createHorizontalStrut(16));
-							panel.add(box);
-						}
-						for (int i = 0; i < colorBtns.length; i++) {
-							final int index = i;
-							// add action listeners for color chooser
-							colorBtns[i].addActionListener(new ActionListener() {
-								@Override
-								public void actionPerformed(ActionEvent e) {
-									if (!openColorChooser)
-										setColorDialog(colorBtns[index]);
-								}
-							});
-							// add buttons and fields to panel
-							Box box = Box.createHorizontalBox();
-							box.add(Box.createHorizontalStrut(16));
-							box.add(colorBtns[i]);
-							box.add(opacityFields[i]);
-							box.add(Box.createHorizontalStrut(16));
-							panel.add(box);
-						}
-					}
-					frame.revalidate();
+					Shader sh = getShaderFromChooser();
+					setSingleShaderPanel(sh, title, gbc, frame, iconLabel, titleLabel, titlePanel, scroll);
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
@@ -477,8 +435,7 @@ public class App {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				try {
-					// new instance of the same shader is made so that the new stream is closed
-					// rather than the old one
+					// new instance of the same shader is made so that the new stream is closed rather than the old one
 					if (shaderType == 0) {
 						float[] rgbData = getRgbDataFromDatGUI();
 						Shader newShader = new Shader(shader.getRefFile());
@@ -510,13 +467,14 @@ public class App {
 		about.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				Box[] boxes = new Box[4];
+				Box[] boxes = new Box[5];
 				Box mainBox = Box.createVerticalBox();
 				String[] authorLinks = { "https://github.com/ViveTheModder",
 					"https://www.youtube.com/@dbzmadeiradabr303", "https://github.com/Vrass28",
-					"https://www.youtube.com/@Zer0noZ" };
-				String[] authorNames = { "ViveTheJoestar", "Maycon", "Vras", "Zer0noZ" };
-				String[] text = { "Made by: ", "Greatly inspired by: ", "Initial research by: ", "Bug Finder: " };
+					"https://bsky.app/profile/did:plc:4hh7ubpzmyq5raktz5sxc6ig", "https://www.youtube.com/@Zer0noZ"
+				};
+				String[] authorNames = { "ViveTheJoestar", "Maycon", "Vras", "Bεzzo", "Zer0noZ" };
+				String[] text = { "Made by: ", "Greatly inspired by: ", "Initial research by: ", "Collaudatore: ", "Testador: " };
 				JLabel[] authors = new JLabel[authorNames.length];
 				for (int i = 0; i < authors.length; i++) {
 					final int index = i;
@@ -563,6 +521,40 @@ public class App {
 		frame.setLocationRelativeTo(null);
 		frame.setTitle(WINDOW_TITLE);
 		frame.setVisible(true);
+		// add drag-and-drop support
+		frame.setTransferHandler(new TransferHandler() {
+			@Override
+			public boolean canImport(TransferHandler.TransferSupport ts) {
+				if (!ts.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) return false;
+				return true;
+			}
+			@Override
+			@SuppressWarnings("unchecked")
+			public boolean importData(TransferHandler.TransferSupport ts) {
+				if (!canImport(ts)) return false;
+				try {
+					List<File> files = (List<File>) ts.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+					lastFile = files.get(0);
+					Shader singleShader = new Shader(lastFile);
+					shaderType = singleShader.getFileType();
+					if (shaderType == -1) {
+						errorBeep();
+						JOptionPane.showMessageDialog(null, "Invalid skill shader!", WINDOW_TITLE, 0);
+					}
+					else {
+						try {
+							setSingleShaderPanel(singleShader, title, gbc, frame, iconLabel, titleLabel, titlePanel, scroll);
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+					}
+				}
+				catch (Exception e) {
+					return false;
+				}
+				return true;
+			}
+		});
 	}
 	private static void setColorDialog(JButton btn) {
 		openColorChooser = true;
@@ -596,6 +588,63 @@ public class App {
 		dialog.setLocationRelativeTo(null);
 		dialog.setTitle("Pick a Color...");
 		dialog.setVisible(true);
+	}
+	private static void setSingleShaderPanel(Shader sh, Box tb, GridBagConstraints gbc, JFrame f, JLabel ico, JLabel tle, JPanel tlePnl, ScrollPane sp) throws IOException {
+		JPanel shaderPanel = getSingleShaderPanel();
+		panel.removeAll();
+		f.remove(panel);
+		if (sh != null && sh.getFileType() != -1) {
+			panel = new JPanel(new GridLayout(0, 4));
+			shader = sh;
+			tb.add(ico);
+			tb.add(tle);
+			tlePnl.add(tb, gbc);
+			sp.add(panel);
+			f.setTitle(WINDOW_TITLE + " - " + shader.getFileName());
+			f.setLayout(new BorderLayout());
+			f.add(tlePnl, BorderLayout.NORTH);
+			f.add(sp, BorderLayout.CENTER);
+			f.add(shaderPanel, BorderLayout.SOUTH);
+			if (shaderType == 0) {
+				float[] rgbData = shader.getRgbDataFromDat();
+				colorBtns = getColorBtnsFromRgbData(rgbData);
+				opacityFields = getOpacityFieldsFromRgbData(rgbData);
+			} else {
+				int[] rgbData = shader.getRgbDataFromV00();
+				colorBtns = getColorBtnsFromRgbData(rgbData);
+				opacityFields = getOpacityFieldsFromRgbData(rgbData);
+			}
+		}
+		if (colorBtns != null) {
+			for (int j = 0; j < 4; j++) {
+				JLabel alpha = new JLabel("Color & Opacity");
+				alpha.setFont(BOLD);
+				Box box = Box.createHorizontalBox();
+				box.add(Box.createHorizontalStrut(16));
+				box.add(alpha);
+				box.add(Box.createHorizontalStrut(16));
+				panel.add(box);
+			}
+			for (int i = 0; i < colorBtns.length; i++) {
+				final int index = i;
+				// add action listeners for color chooser
+				colorBtns[i].addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						if (!openColorChooser)
+							setColorDialog(colorBtns[index]);
+					}
+				});
+				// add buttons and fields to panel
+				Box box = Box.createHorizontalBox();
+				box.add(Box.createHorizontalStrut(16));
+				box.add(colorBtns[i]);
+				box.add(opacityFields[i]);
+				box.add(Box.createHorizontalStrut(16));
+				panel.add(box);
+			}
+		}
+		f.revalidate();
 	}
 	public static void main(String[] args) {
 		try {

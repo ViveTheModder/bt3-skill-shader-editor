@@ -1,7 +1,6 @@
 package cmd;
 //BT3 Skill Shader Class, written by ViveTheJoestar
 import java.io.File;
-//BT3 Skill Shader Class by ViveTheModder
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
